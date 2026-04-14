@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Meal Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bf-bg: #fef9c3; --bf-bd: #fde68a; --bf-acc: #ca8a04; --bf-dk: #78350f;
+      --lu-bg: #dcfce7; --lu-bd: #86efac; --lu-acc: #16a34a; --lu-dk: #14532d;
+      --di-bg: #ffedd5; --di-bd: #fdba74; --di-acc: #ea580c; --di-dk: #7c2d12;
+      --sn-bg: #f3e8ff; --sn-bd: #d8b4fe; --sn-acc: #9333ea; --sn-dk: #4c1d95;
+      --g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;
+      --g400:#9ca3af;--g500:#6b7280;--g600:#4b5563;--g700:#374151;
+      --g800:#1f2937;--g900:#111827;
+      --blue:#2563eb;--blue-bg:#eff6ff;--blue-lt:#bfdbfe;
+      --r:8px;--rsm:5px;
+    }
+
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--g50); color:var(--g900); min-height:100vh; }
+
+    /* ── HEADER ── */
+    .hdr { background:#fff; border-bottom:1px solid var(--g200); padding:10px 16px; position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .hdr-title { font-size:15px; font-weight:700; color:var(--g800); white-space:nowrap; }
+    .tabs { display:flex; background:var(--g100); border-radius:7px; padding:3px; gap:2px; }
+    .tab { padding:5px 12px; border-radius:5px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:none; color:var(--g500); font-family:inherit; transition:all .12s; }
+    .tab.active { background:#fff; color:var(--g800); box-shadow:0 1px 3px rgba(0,0,0,.1); }
+    .nav-row { display:flex; align-items:center; gap:6px; margin-left:auto; }
+    .nav-arrow { width:28px; height:28px; border-radius:6px; border:1px solid var(--g200); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--g600); font-size:14px; font-family:inherit; transition:all .12s; }
+    .nav-arrow:hover { background:var(--g100); border-color:var(--g300); }
+    .nav-label { font-size:13px; font-weight:500; color:var(--g700); min-width:140px; text-align:center; }
+    .today-btn { padding:5px 10px; border-radius:5px; border:1px solid var(--g200); background:#fff; font-size:12px; font-weight:500; color:var(--g600); cursor:pointer; font-family:inherit; transition:all .12s; }
+    .today-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .hdr-add-btn { margin-left:auto; padding:7px 14px; border-radius:var(--rsm); border:none; background:var(--blue); color:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; }
+    .hdr-add-btn:hover { background:#1d4ed8; }
+
+    /* ── WEEKLY VIEW ── */
+    .weekly-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+    .weekly-grid { min-width:660px; border:1px solid var(--g200); border-radius:var(--r); overflow:hidden; background:var(--g200); display:grid; gap:1px; }
+    .wg-head { display:grid; grid-template-columns:70px repeat(7,1fr); gap:1px; background:var(--g200); }
+    .wg-head-cell { background:var(--g50); padding:8px 4px; text-align:center; }
+    .wg-day-name { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g400); }
+    .wg-day-num  { font-size:14px; font-weight:600; color:var(--g700); margin-top:2px; }
+    .wg-day-num.today-circle { background:var(--blue); color:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:13px; margin:2px auto 0; }
+    .wg-row { display:grid; grid-template-columns:70px repeat(7,1fr); gap:1px; }
+    .wg-label { background:#fff; padding:8px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+    .wg-label-icon { font-size:14px; line-height:1; }
+    .wg-label-txt  { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--g400); }
+    .wg-cell { background:#fff; padding:5px; min-height:64px; position:relative; cursor:pointer; transition:background .1s; }
+    .wg-cell:hover { background:var(--g50); }
+
+    /* ── SLOT CHIPS ── */
+    .slot-empty { height:100%; min-height:50px; border:1.5px dashed var(--g200); border-radius:var(--rsm); display:flex; align-items:center; justify-content:center; color:var(--g300); font-size:20px; cursor:pointer; transition:all .12s; }
+    .slot-empty:hover { border-color:var(--g400); color:var(--g500); }
+    .slot-chip { border-radius:var(--rsm); padding:5px 8px; margin-bottom:3px; cursor:pointer; }
+    .slot-chip:last-child { margin-bottom:0; }
+    .slot-chip.breakfast { background:var(--bf-bg); border:1px solid var(--bf-bd); }
+    .slot-chip.lunch     { background:var(--lu-bg); border:1px solid var(--lu-bd); }
+    .slot-chip.dinner    { background:var(--di-bg); border:1px solid var(--di-bd); }
+    .slot-chip.snack     { background:var(--sn-bg); border:1px solid var(--sn-bd); }
+    .chip-name { font-size:11px; font-weight:600; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    .slot-chip.breakfast .chip-name { color:var(--bf-dk); }
+    .slot-chip.lunch     .chip-name { color:var(--lu-dk); }
+    .slot-chip.dinner    .chip-name { color:var(--di-dk); }
+    .slot-chip.snack     .chip-name { color:var(--sn-dk); }
+    .slot-chip.placeholder { background:var(--g100); border:1px dashed var(--g300); }
+    .slot-chip.placeholder .chip-name { color:var(--g400); font-style:italic; }
+
+    .snacks-more { font-size:10px; color:var(--g400); padding:2px 2px; }
+    .snacks-add-lnk { font-size:10px; color:var(--g400); cursor:pointer; padding:2px 2px; display:block; }
+    .snacks-add-lnk:hover { color:var(--blue); }
+
+    /* ── DAILY VIEW ── */
+    .daily-wrap { max-width:580px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+    .daily-top-row { display:flex; align-items:center; justify-content:flex-end; }
+    .copy-day-btn { padding:6px 12px; border-radius:var(--rsm); border:1px solid var(--g200); background:#fff; font-size:12px; font-weight:500; color:var(--g600); cursor:pointer; font-family:inherit; transition:all .12s; }
+    .copy-day-btn:hover { border-color:var(--g400); color:var(--g800); }
+    .section-card { background:#fff; border:1px solid var(--g200); border-radius:var(--r); overflow:hidden; }
+    .sec-head { padding:10px 14px; display:flex; align-items:center; gap:8px; }
+    .sec-head.breakfast { background:var(--bf-bg); border-bottom:1px solid var(--bf-bd); }
+    .sec-head.lunch     { background:var(--lu-bg); border-bottom:1px solid var(--lu-bd); }
+    .sec-head.dinner    { background:var(--di-bg); border-bottom:1px solid var(--di-bd); }
+    .sec-head.snacks    { background:var(--sn-bg); border-bottom:1px solid var(--sn-bd); }
+    .sec-head-icon  { font-size:16px; line-height:1; }
+    .sec-head-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    .sec-head.breakfast .sec-head-label { color:var(--bf-acc); }
+    .sec-head.lunch     .sec-head-label { color:var(--lu-acc); }
+    .sec-head.dinner    .sec-head-label { color:var(--di-acc); }
+    .sec-head.snacks    .sec-head-label { color:var(--sn-acc); }
+    .sec-body { padding:12px 14px; }
+    .daily-empty { border:1.5px dashed var(--g200); border-radius:var(--rsm); padding:14px; text-align:center; color:var(--g400); font-size:13px; cursor:pointer; transition:all .12s; }
+    .daily-empty:hover { border-color:var(--g400); color:var(--g600); background:var(--g50); }
+    .daily-filled { display:flex; align-items:flex-start; gap:10px; }
+    .daily-info { flex:1; min-width:0; }
+    .daily-name  { font-size:15px; font-weight:600; color:var(--g800); margin-bottom:3px; }
+
+    .daily-notes { font-size:12px; color:var(--g500); line-height:1.4; margin-bottom:6px; }
+    .daily-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .snack-list  { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+    .snack-row   { display:flex; align-items:center; gap:8px; }
+    .snack-row-info { flex:1; }
+    .snack-row-name { font-size:14px; font-weight:500; color:var(--g800); }
+
+    .add-snack-btn { width:100%; padding:8px; border:1.5px dashed var(--g200); border-radius:var(--rsm); background:none; font-size:13px; color:var(--g400); cursor:pointer; font-family:inherit; transition:all .12s; }
+    .add-snack-btn:hover { border-color:var(--g400); color:var(--g600); }
+
+    /* ── LIBRARY ── */
+    .lib-wrap { max-width:680px; margin:0 auto; padding:16px; }
+    .lib-toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+    .lib-search { flex:1; min-width:150px; padding:8px 12px; border:1px solid var(--g200); border-radius:var(--rsm); font-size:14px; font-family:inherit; color:var(--g900); outline:none; background:#fff; }
+    .lib-search:focus { border-color:var(--blue); }
+    .filter-pill { padding:5px 12px; border-radius:20px; border:1px solid var(--g200); background:#fff; font-size:12px; font-weight:500; color:var(--g500); cursor:pointer; font-family:inherit; transition:all .12s; white-space:nowrap; }
+    .filter-pill:hover { border-color:var(--g400); }
+    .filter-pill.active { border-color:var(--blue); background:var(--blue-bg); color:var(--blue); }
+    .filter-pill.breakfast.active { border-color:var(--bf-acc); background:var(--bf-bg); color:var(--bf-dk); }
+    .filter-pill.lunch.active     { border-color:var(--lu-acc); background:var(--lu-bg); color:var(--lu-dk); }
+    .filter-pill.dinner.active    { border-color:var(--di-acc); background:var(--di-bg); color:var(--di-dk); }
+    .filter-pill.meal.active      { border-color:var(--lu-acc); background:var(--lu-bg); color:var(--lu-dk); }
+    .filter-pill.snack.active       { border-color:var(--sn-acc); background:var(--sn-bg); color:var(--sn-dk); }
+    .filter-pill.placeholder.active { border-color:var(--g300); background:var(--g100); color:var(--g500); }
+    .meal-card { background:#fff; border:1px solid var(--g200); border-radius:var(--r); padding:14px 16px; margin-bottom:8px; display:flex; align-items:flex-start; gap:12px; transition:box-shadow .12s; }
+    .meal-card:hover { box-shadow:0 1px 6px rgba(0,0,0,.06); }
+    .cat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+    .cat-dot.breakfast { background:var(--bf-acc); }
+    .cat-dot.lunch     { background:var(--lu-acc); }
+    .cat-dot.dinner    { background:var(--di-acc); }
+    .cat-dot.meal      { background:var(--lu-acc); }
+    .cat-dot.snack       { background:var(--sn-acc); }
+    .cat-dot.placeholder { background:var(--g300); }
+    .meal-info { flex:1; min-width:0; }
+    .meal-name { font-size:14px; font-weight:600; color:var(--g800); margin-bottom:4px; }
+    .meal-meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .cat-badge { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:10px; }
+    .cat-badge.breakfast { background:var(--bf-bg); color:var(--bf-dk); }
+    .cat-badge.lunch     { background:var(--lu-bg); color:var(--lu-dk); }
+    .cat-badge.dinner    { background:var(--di-bg); color:var(--di-dk); }
+    .cat-badge.meal      { background:var(--lu-bg); color:var(--lu-dk); }
+    .cat-badge.snack       { background:var(--sn-bg); color:var(--sn-dk); }
+    .cat-badge.placeholder { background:var(--g100); color:var(--g400); }
+
+    .meal-notes-lbl { font-size:12px; color:var(--g500); margin-top:3px; line-height:1.4; }
+    .meal-card-actions { display:flex; gap:4px; flex-shrink:0; }
+
+    /* ── BUTTONS ── */
+    .btn { padding:6px 12px; border-radius:var(--rsm); font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--g200); background:#fff; color:var(--g700); font-family:inherit; transition:all .12s; display:inline-flex; align-items:center; gap:4px; }
+    .btn:hover { border-color:var(--g400); color:var(--g900); }
+    .btn-primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .btn-primary:hover { background:#1d4ed8; border-color:#1d4ed8; }
+    .btn-danger { color:#dc2626; }
+    .btn-danger:hover { border-color:#fca5a5; background:#fef2f2; }
+    .btn-sm { padding:4px 9px; font-size:11px; }
+
+    /* ── MODALS ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal { background:#fff; border-radius:var(--r); box-shadow:0 20px 60px rgba(0,0,0,.2); width:100%; max-width:480px; max-height:90vh; overflow-y:auto; animation:mIn .18s ease-out; }
+    @keyframes mIn { from{transform:translateY(6px) scale(.98);opacity:0} to{transform:none;opacity:1} }
+    .modal-head { padding:14px 18px; border-bottom:1px solid var(--g200); display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .modal-title { font-size:15px; font-weight:700; color:var(--g800); }
+    .modal-sub   { font-size:12px; color:var(--g500); margin-top:2px; }
+    .modal-close { width:26px; height:26px; border-radius:50%; border:none; background:var(--g100); color:var(--g600); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; margin-top:1px; }
+    .modal-close:hover { background:var(--g200); }
+    .modal-body { padding:14px 18px; }
+    .modal-foot { padding:12px 18px; border-top:1px solid var(--g100); display:flex; justify-content:flex-end; gap:8px; }
+
+    /* Picker */
+    .picker-search { width:100%; padding:9px 12px; border:1.5px solid var(--g200); border-radius:var(--rsm); font-size:14px; font-family:inherit; outline:none; margin-bottom:10px; }
+    .picker-search:focus { border-color:var(--blue); }
+    .picker-sec-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--g400); padding:6px 0 4px; }
+    .picker-item { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--rsm); cursor:pointer; transition:background .1s; }
+    .picker-item:hover { background:var(--g50); }
+    .picker-item-name { font-size:13px; font-weight:500; color:var(--g800); flex:1; }
+
+    .picker-divider { height:1px; background:var(--g100); margin:5px 0; }
+    .quick-add-row { display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--g100); }
+    .quick-add-inp { flex:1; padding:8px 11px; border:1.5px solid var(--g200); border-radius:var(--rsm); font-size:13px; font-family:inherit; outline:none; }
+    .quick-add-inp:focus { border-color:var(--blue); }
+    .picker-current { margin-bottom:12px; padding:10px 12px; background:var(--g50); border:1px solid var(--g200); border-radius:var(--rsm); }
+    .picker-current-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g400); margin-bottom:4px; }
+    .picker-current-name { font-size:13px; font-weight:600; color:var(--g800); margin-bottom:6px; }
+
+    /* Meal form */
+    .form-field { margin-bottom:14px; }
+    .form-label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g500); margin-bottom:5px; }
+    .form-input { width:100%; padding:9px 11px; border:1.5px solid var(--g200); border-radius:var(--rsm); font-size:14px; font-family:inherit; color:var(--g900); outline:none; background:#fff; transition:border-color .12s; }
+    .form-input:focus { border-color:var(--blue); }
+    .form-input.err { border-color:#f87171; }
+    textarea.form-input { resize:vertical; min-height:64px; line-height:1.5; }
+    .cat-pills { display:flex; gap:6px; flex-wrap:wrap; }
+    .cat-pill { padding:6px 14px; border-radius:20px; border:1.5px solid var(--g200); background:#fff; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; color:var(--g500); transition:all .12s; }
+    .cat-pill:hover { border-color:var(--g400); }
+    .cat-pill.sel-breakfast { border-color:var(--bf-acc); background:var(--bf-bg); color:var(--bf-dk); }
+    .cat-pill.sel-lunch     { border-color:var(--lu-acc); background:var(--lu-bg); color:var(--lu-dk); }
+    .cat-pill.sel-dinner    { border-color:var(--di-acc); background:var(--di-bg); color:var(--di-dk); }
+    .cat-pill.sel-meal      { border-color:var(--lu-acc); background:var(--lu-bg); color:var(--lu-dk); }
+    .cat-pill.sel-snack       { border-color:var(--sn-acc); background:var(--sn-bg); color:var(--sn-dk); }
+    .cat-pill.sel-placeholder { border-color:var(--g400); background:var(--g100); color:var(--g500); }
+
+    /* Popover */
+    .popover { position:fixed; z-index:400; background:#fff; border:1px solid var(--g200); border-radius:var(--r); box-shadow:0 8px 28px rgba(0,0,0,.13); padding:12px 14px; min-width:190px; max-width:240px; }
+    .popover-name { font-size:13px; font-weight:600; color:var(--g800); margin-bottom:3px; }
+
+    .popover-notes { font-size:11px; color:var(--g500); margin-bottom:8px; line-height:1.4; }
+    .popover-actions { display:flex; gap:4px; flex-wrap:wrap; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(70px); background:var(--g800); color:#fff; padding:9px 18px; border-radius:20px; font-size:13px; z-index:1000; transition:transform .2s ease-out; pointer-events:none; white-space:nowrap; }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+
+    /* Empty */
+    .empty { text-align:center; padding:40px 20px; }
+    .empty-icon { font-size:30px; margin-bottom:10px; opacity:.4; }
+    .empty-txt  { font-size:13px; color:var(--g400); }
+
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--g200); border-radius:3px; }
+
+    /* ── WEEKLY MOBILE (stacked day cards) ── */
+    .ws-wrap { padding:12px; display:flex; flex-direction:column; gap:10px; max-width:640px; margin:0 auto; }
+    .ws-day { background:#fff; border:1px solid var(--g200); border-radius:var(--r); overflow:hidden; }
+    .ws-day.today { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.07); }
+    .ws-day-hdr { padding:9px 14px; background:var(--g50); border-bottom:1px solid var(--g200); display:flex; align-items:baseline; gap:8px; }
+    .ws-day.today .ws-day-hdr { background:var(--blue-bg); border-bottom-color:var(--blue-lt); }
+    .ws-day-name { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--g500); }
+    .ws-day.today .ws-day-name { color:var(--blue); }
+    .ws-day-date { font-size:15px; font-weight:700; color:var(--g800); }
+    .ws-day.today .ws-day-date { color:var(--blue); }
+    .ws-day-body { padding:4px 12px; }
+    .ws-meal-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--g100); }
+    .ws-meal-row:last-child { border-bottom:none; }
+    .ws-meal-icon { font-size:14px; width:20px; text-align:center; flex-shrink:0; }
+    .ws-meal-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--g400); width:64px; flex-shrink:0; }
+    .ws-meal-slot { flex:1; min-width:0; }
+    .ws-meal-slot .slot-empty { min-height:32px; font-size:18px; }
+    .ws-add-snack { font-size:11px; color:var(--g400); padding:3px 0; cursor:pointer; }
+    .ws-add-snack:hover { color:var(--blue); }
+
+    @media(max-width:640px) {
+      .nav-label { min-width:110px; font-size:12px; }
+      .tab { padding:5px 9px; font-size:12px; }
+      .hdr-title { font-size:13px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="modal-root"></div>
+  <div id="popover-root"></div>
+  <div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════
+const SLOT_META = {
+  breakfast: { label:'Breakfast', icon:'☀️' },
+  lunch:     { label:'Lunch',     icon:'🥗' },
+  dinner:    { label:'Dinner',    icon:'🍽' },
+  snacks:    { label:'Snacks',    icon:'🍎' },
+};
+const SLOTS = ['breakfast','lunch','dinner','snacks'];
+const CATS  = ['breakfast','meal','snack','placeholder'];
+
+const SEEDS = [
+  { name:'Scrambled Eggs',        category:'breakfast', notes:'Add chives & cream cheese' },
+  { name:'Overnight Oats',        category:'breakfast', notes:'Prep the night before with chia seeds' },
+  { name:'Avocado Toast',         category:'breakfast' },
+  { name:'Greek Yogurt & Granola',category:'breakfast' },
+  { name:'Chicken Caesar Salad',  category:'meal' },
+  { name:'Turkey & Cheese Wrap',  category:'meal' },
+  { name:'Tomato Soup',           category:'meal',      notes:'Best with crusty sourdough' },
+  { name:'Pasta Bolognese',       category:'meal' },
+  { name:'Grilled Salmon',        category:'meal',      notes:'With asparagus and lemon butter' },
+  { name:'Chicken Stir Fry',      category:'meal' },
+  { name:'Sheet Pan Veggies',     category:'meal' },
+  { name:'Apple & Peanut Butter', category:'snack' },
+  { name:'Mixed Nuts',            category:'snack' },
+  { name:'Hummus & Veggies',      category:'snack' },
+];
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let S = {
+  view: 'weekly',
+  weekStart: '',
+  selectedDate: '',
+  meals: [],
+  plans: [],
+  recentIds: [],
+  modal: null,
+  popover: null,
+  pickerSearch: '',
+  libSearch: '',
+  libCat: 'all',
+  formData: {},
+};
+
+// ═══════════════════════════════════════════
+//  DATE UTILS
+// ═══════════════════════════════════════════
+function todayISO() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+function fromISO(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function toLocalISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+function addDays(iso, n) {
+  const d = fromISO(iso);
+  d.setDate(d.getDate() + n);
+  return toLocalISO(d);
+}
+
+function getMondayISO(iso) {
+  const d = fromISO(iso);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return toLocalISO(d);
+}
+
+function getWeekDays(mon) { return Array.from({length:7}, (_,i) => addDays(mon, i)); }
+
+function fmtShort(iso) { return fromISO(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtDayName(iso){ return fromISO(iso).toLocaleDateString('en-US',{weekday:'short'}); }
+function fmtDayNum(iso) { return fromISO(iso).getDate(); }
+function fmtFull(iso) { return fromISO(iso).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+
+function fmtWeekRange(mon) {
+  const sun = addDays(mon, 6);
+  const s = fromISO(mon), e = fromISO(sun);
+  if (s.getMonth() === e.getMonth())
+    return s.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '–' + e.getDate() + ', ' + e.getFullYear();
+  return s.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' + e.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ', ' + e.getFullYear();
+}
+
+// ═══════════════════════════════════════════
+//  PERSISTENCE
+// ═══════════════════════════════════════════
+const STORE = 'meal-planner-v1';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) {
+      const d = JSON.parse(raw);
+      S.meals = d.meals || [];
+      S.plans = d.plans || [];
+      S.recentIds = d.recentIds || [];
+    } else {
+      S.meals = SEEDS.map(m => ({...m, id:uid(), createdAt:new Date().toISOString()}));
+    }
+  } catch(e) {
+    S.meals = SEEDS.map(m => ({...m, id:uid(), createdAt:new Date().toISOString()}));
+  }
+  // Normalise all plan slots to arrays (legacy single-entry → 1-element array)
+  S.plans.forEach(p => normalisePlan(p));
+  // Migrate any array categories back to strings
+  let migrated = false;
+  S.meals.forEach(m => {
+    if (Array.isArray(m.category)) { m.category = m.category[0] || 'meal'; migrated = true; }
+    if (m.category === 'lunch' || m.category === 'dinner') { m.category = 'meal'; migrated = true; }
+  });
+  if (migrated) saveState();
+}
+
+function normalisePlan(p) {
+  ['breakfast','lunch','dinner','snacks'].forEach(slot => {
+    if (Array.isArray(p[slot])) return;
+    if (p[slot] == null) p[slot] = [];
+    else p[slot] = [p[slot]];
+  });
+}
+
+function saveState() {
+  try { localStorage.setItem(STORE, JSON.stringify({meals:S.meals, plans:S.plans, recentIds:S.recentIds})); } catch(e) {}
+}
+
+function exportData() {
+  const data = localStorage.getItem(STORE) || JSON.stringify({meals:[],plans:[],recentIds:[]});
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'meal-planner-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data || !Array.isArray(data.meals) || !Array.isArray(data.plans)) throw new Error('bad format');
+      if (!confirm('Import ' + data.meals.length + ' meals and ' + data.plans.length + ' day plans? This will replace your current data.')) return;
+      localStorage.setItem(STORE, JSON.stringify(data));
+      S.meals = data.meals;
+      S.plans = data.plans;
+      S.recentIds = data.recentIds || [];
+      render();
+      alert('Imported successfully.');
+    } catch(err) {
+      alert('Could not import: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getMeal(id) { return S.meals.find(m => m.id === id); }
+
+function getEntryName(entry) {
+  if (!entry) return '';
+  if (entry.mealId) { const m = getMeal(entry.mealId); return m ? m.name : '(deleted)'; }
+  return entry.customName || '';
+}
+
+
+function getEntryNotes(entry) {
+  if (!entry || !entry.mealId) return '';
+  const m = getMeal(entry.mealId);
+  return m ? (m.notes || '') : '';
+}
+
+function addToRecent(mealId) {
+  if (!mealId) return;
+  const m = getMeal(mealId);
+  if (m && m.temporary) return; // skip one-off temp meals
+  S.recentIds = [mealId, ...S.recentIds.filter(id => id !== mealId)].slice(0, 8);
+}
+
+
+// ═══════════════════════════════════════════
+//  PLAN OPS
+// ═══════════════════════════════════════════
+function getDayPlan(date) {
+  let p = S.plans.find(p => p.date === date);
+  if (!p) { p = {date, breakfast:[], lunch:[], dinner:[], snacks:[]}; S.plans.push(p); }
+  normalisePlan(p);
+  return p;
+}
+
+// All four slots are arrays. Items are added/removed/replaced uniformly.
+function addToSlot(date, slot, entry) {
+  const p = getDayPlan(date);
+  if (entry && entry.mealId) addToRecent(entry.mealId);
+  p[slot].push(entry);
+  saveState();
+}
+
+function clearSlot(date, slot) {
+  const p = getDayPlan(date);
+  p[slot] = [];
+  saveState();
+}
+
+function removeFromSlot(date, slot, idx) {
+  const p = getDayPlan(date);
+  p[slot].splice(idx, 1);
+  saveState();
+}
+
+function replaceInSlot(date, slot, idx, entry) {
+  const p = getDayPlan(date);
+  if (entry && entry.mealId) addToRecent(entry.mealId);
+  p[slot][idx] = entry;
+  saveState();
+}
+
+function copyDay(from, to) {
+  const f = getDayPlan(from), t = getDayPlan(to);
+  ['breakfast','lunch','dinner','snacks'].forEach(slot => {
+    t[slot] = (f[slot] || []).map(e => ({...e}));
+  });
+  saveState();
+}
+
+function useAgainNext(date, slot, idx, days) {
+  const nextDate = addDays(date, days);
+  const p = getDayPlan(date);
+  const e = p[slot] && p[slot][idx];
+  if (e) addToSlot(nextDate, slot, {...e});
+  saveState();
+}
+
+// ═══════════════════════════════════════════
+//  MEAL LIBRARY OPS
+// ═══════════════════════════════════════════
+function addMeal(data) {
+  const m = {id:uid(), name:data.name.trim(), category:data.category,
+    notes:data.notes?data.notes.trim():'',
+    temporary: !!data.temporary,
+    createdAt:new Date().toISOString()};
+  S.meals.unshift(m);
+  saveState();
+  return m;
+}
+
+function updateMeal(id, data) {
+  const m = S.meals.find(m => m.id === id);
+  if (!m) return;
+  m.name = data.name.trim();
+  m.category = data.category;
+  m.notes = data.notes ? data.notes.trim() : '';
+  saveState();
+}
+
+function deleteMeal(id) {
+  S.meals = S.meals.filter(m => m.id !== id);
+  S.plans.forEach(p => {
+    SLOTS.forEach(slot => {
+      p[slot] = (p[slot] || []).filter(e => !e || e.mealId !== id);
+    });
+  });
+  S.recentIds = S.recentIds.filter(r => r !== id);
+  saveState();
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+let toastTmr;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════
+//  RENDER CORE
+// ═══════════════════════════════════════════
+function render() {
+  const app = document.getElementById('app');
+  const st = app.scrollTop;
+  app.innerHTML = renderHeader() + renderView();
+  app.scrollTop = st;
+}
+
+function renderView() {
+  if (S.view === 'weekly')  return renderWeekly();
+  if (S.view === 'daily')   return renderDaily();
+  if (S.view === 'library') return renderLibrary();
+  return '';
+}
+
+// ── HEADER ──────────────────────────────────
+function renderHeader() {
+  const t = todayISO();
+  const showNav = S.view !== 'library';
+  const isLib   = S.view === 'library';
+  const isCurWeek = S.view === 'weekly' && S.weekStart === getMondayISO(t);
+  const isToday_  = S.view === 'daily'  && S.selectedDate === t;
+  const showToday = showNav && (S.view === 'weekly' ? !isCurWeek : !isToday_);
+  const label = S.view === 'weekly' ? fmtWeekRange(S.weekStart) : fmtFull(S.selectedDate);
+
+  return `<div class="hdr">
+    <span class="hdr-title">🍽 Meal Planner</span>
+    <div class="tabs">
+      <button class="tab ${S.view==='weekly'  ? 'active':''}" onclick="setView('weekly')">Weekly</button>
+      <button class="tab ${S.view==='daily'   ? 'active':''}" onclick="setView('daily')">Daily</button>
+      <button class="tab ${S.view==='library' ? 'active':''}" onclick="setView('library')">Library</button>
+    </div>
+    ${showNav ? `
+      <div class="nav-row">
+        <button class="nav-arrow" onclick="navPrev()">&#8592;</button>
+        <span class="nav-label">${esc(label)}</span>
+        <button class="nav-arrow" onclick="navNext()">&#8594;</button>
+        ${showToday ? `<button class="today-btn" onclick="goToday()">Today</button>` : ''}
+      </div>` : `
+      <button class="hdr-add-btn" onclick="openMealForm(null)">+ Add Meal</button>
+    `}
+    <div style="display:flex;gap:6px;${showNav ? '' : 'margin-left:8px;'}">
+      <button class="today-btn" onclick="exportData()">Export</button>
+      <button class="today-btn" onclick="document.getElementById('import-file').click()">Import</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>`;
+}
+
+// ── WEEKLY VIEW ──────────────────────────────
+function renderWeekly() {
+  if (window.innerWidth < 640) return renderWeeklyMobile();
+  const days = getWeekDays(S.weekStart);
+  const t = todayISO();
+
+  const headCells = `<div class="wg-head-cell"></div>` + days.map(d => {
+    const isT = d === t;
+    const num = fmtDayNum(d);
+    return `<div class="wg-head-cell">
+      <div class="wg-day-name">${fmtDayName(d)}</div>
+      ${isT ? `<div class="wg-day-num today-circle">${num}</div>` : `<div class="wg-day-num">${num}</div>`}
+    </div>`;
+  }).join('');
+
+  const rows = SLOTS.map(slot => {
+    const meta = SLOT_META[slot];
+    const cells = days.map(d => renderWeeklyCell(d, slot)).join('');
+    return `<div class="wg-row">
+      <div class="wg-label">
+        <span class="wg-label-icon">${meta.icon}</span>
+        <span class="wg-label-txt">${meta.label}</span>
+      </div>
+      ${cells}
+    </div>`;
+  }).join('');
+
+  return `<div class="weekly-wrap">
+    <div class="weekly-grid">
+      <div class="wg-head">${headCells}</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+function renderWeeklyMobile() {
+  const days = getWeekDays(S.weekStart);
+  const t = todayISO();
+
+  const dayCards = days.map(date => {
+    const isT = date === t;
+    const plan = S.plans.find(p => p.date === date);
+    const dayName = fromISO(date).toLocaleDateString('en-US', { weekday: 'long' });
+    const dayNum  = fmtDayNum(date);
+    const monthName = fromISO(date).toLocaleDateString('en-US', { month: 'short' });
+
+    const rows = SLOTS.map(slot => {
+      const meta = SLOT_META[slot];
+      const items = (plan && plan[slot]) || [];
+      let slotHtml;
+      if (items.length === 0) {
+        slotHtml = `<div class="slot-empty" onclick="openPicker('${date}','${slot}',null)">+</div>`;
+      } else {
+        slotHtml = items.map((entry, i) => {
+          return `<div class="slot-chip ${chipClass(entry, slot)}" onclick="openPicker('${date}','${slot}',${i})">
+            <div class="chip-name">${esc(getEntryName(entry))}</div>
+            ${chipBottom(entry, date, slot, i)}
+          </div>`;
+        }).join('') + `<div class="ws-add-snack" onclick="openPicker('${date}','${slot}',null)">+ add another</div>`;
+      }
+      return `<div class="ws-meal-row">
+        <span class="ws-meal-icon">${meta.icon}</span>
+        <span class="ws-meal-label">${meta.label}</span>
+        <div class="ws-meal-slot">${slotHtml}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="ws-day ${isT ? 'today' : ''}">
+      <div class="ws-day-hdr">
+        <span class="ws-day-name">${dayName}</span>
+        <span class="ws-day-date">${monthName} ${dayNum}</span>
+      </div>
+      <div class="ws-day-body">${rows}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="ws-wrap">${dayCards}</div>`;
+}
+
+function renderWeeklyCell(date, slot) {
+  const plan = S.plans.find(p => p.date === date);
+  const items = (plan && plan[slot]) || [];
+  const shown = items.slice(0, 2);
+  const extra = items.length - 2;
+
+  if (items.length === 0) {
+    return `<div class="wg-cell"><div class="slot-empty" onclick="openPicker('${date}','${slot}',null)">+</div></div>`;
+  }
+  return `<div class="wg-cell" onclick="openPicker('${date}','${slot}',null)">
+    ${shown.map((entry, i) => {
+      return `<div class="slot-chip ${chipClass(entry, slot)}" onclick="event.stopPropagation();openPicker('${date}','${slot}',${i})">
+        <div class="chip-name">${esc(getEntryName(entry))}</div>
+        ${chipBottom(entry, date, slot, i)}
+      </div>`;
+    }).join('')}
+    ${extra > 0 ? `<div class="snacks-more">+${extra} more</div>` : ''}
+    <span class="snacks-add-lnk" onclick="event.stopPropagation();openPicker('${date}','${slot}',null)">+ add</span>
+  </div>`;
+}
+
+function chipBottom(entry, date, slot, idx) { return ''; }
+
+function chipClass(entry, slot) {
+  if (entry && entry.mealId) {
+    const m = getMeal(entry.mealId);
+    if (m && m.category === 'placeholder') return 'placeholder';
+  }
+  return slot === 'snacks' ? 'snack' : slot;
+}
+
+// ── DAILY VIEW ───────────────────────────────
+function renderDaily() {
+  const date = S.selectedDate;
+  const plan = getDayPlan(date);
+
+  const sections = SLOTS.map(slot => {
+    const meta = SLOT_META[slot];
+    return `<div class="section-card">
+      <div class="sec-head ${slot}">
+        <span class="sec-head-icon">${meta.icon}</span>
+        <span class="sec-head-label">${meta.label}</span>
+      </div>
+      <div class="sec-body">${renderDailyItems(date, slot, plan)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="daily-wrap">
+    <div class="daily-top-row">
+      <button class="copy-day-btn" onclick="openCopyDay('${date}')">📋 Copy Day</button>
+    </div>
+    ${sections}
+  </div>`;
+}
+
+function renderDailyItems(date, slot, plan) {
+  const items = plan[slot] || [];
+  const meta = SLOT_META[slot];
+  const singular = meta.label.replace(/s$/, '');
+  const rows = items.map((entry, i) => {
+    const name = getEntryName(entry);
+
+    return `<div class="snack-row">
+      <div class="snack-row-info">
+        <div class="snack-row-name">${esc(name)}</div>
+      </div>
+      <button class="btn btn-sm" onclick="openPicker('${date}','${slot}',${i})">Change</button>
+      <button class="btn btn-sm" onclick="doUseAgain('${date}','${slot}',${i},1)">→</button>
+      <button class="btn btn-sm btn-danger" onclick="doRemoveItem('${date}','${slot}',${i})">✕</button>
+    </div>`;
+  }).join('');
+  return `${items.length > 0 ? `<div class="snack-list">${rows}</div>` : ''}
+    <button class="add-snack-btn" onclick="openPicker('${date}','${slot}',null)">+ Add ${singular}</button>`;
+}
+
+// ── LIBRARY ──────────────────────────────────
+function renderLibrary() {
+  return `<div class="lib-wrap">
+    <div class="lib-toolbar">
+      <input class="lib-search" type="text" placeholder="Search meals…"
+        value="${esc(S.libSearch)}" oninput="doLibSearch(this.value)" id="lib-inp">
+      <button class="filter-pill ${S.libCat==='all' ? 'active' : ''}" onclick="setLibCat('all')">All</button>
+      ${CATS.map(c => `<button class="filter-pill ${c} ${S.libCat===c?'active':''}" onclick="setLibCat('${c}')">${cap(c)}</button>`).join('')}
+    </div>
+    <div id="lib-list">${renderLibList()}</div>
+  </div>`;
+}
+
+function renderLibList() {
+  let meals = S.meals.filter(m => !m.temporary);
+  if (S.libCat !== 'all') meals = meals.filter(m => m.category === S.libCat);
+  if (S.libSearch) {
+    const q = S.libSearch.toLowerCase();
+    meals = meals.filter(m => m.name.toLowerCase().includes(q) || (m.notes&&m.notes.toLowerCase().includes(q)));
+  }
+  if (!meals.length) return `<div class="empty"><div class="empty-icon">🥣</div><div class="empty-txt">No meals found</div></div>`;
+  return meals.map(m => {
+    return `<div class="meal-card">
+      <div class="cat-dot ${m.category}"></div>
+      <div class="meal-info">
+        <div class="meal-name">${esc(m.name)}</div>
+        <div class="meal-meta">
+          <span class="cat-badge ${m.category}">${cap(m.category)}</span>
+        </div>
+        ${m.notes ? `<div class="meal-notes-lbl">${esc(m.notes)}</div>` : ''}
+      </div>
+      <div class="meal-card-actions">
+        <button class="btn btn-sm" onclick="openMealForm('${m.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="confirmDeleteMeal('${m.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL RENDER ─────────────────────────────
+function renderModal() {
+  const root = document.getElementById('modal-root');
+  if (!S.modal) { root.innerHTML = ''; return; }
+  let inner = '';
+  if (S.modal.type === 'picker')   inner = renderPickerModal();
+  if (S.modal.type === 'mealForm') inner = renderMealFormModal();
+  if (S.modal.type === 'copyDay')  inner = renderCopyDayModal();
+  if (S.modal.type === 'delMeal')  inner = renderDelMealModal();
+  root.innerHTML = `<div class="modal-overlay" onclick="overlayClose(event)">
+    <div class="modal" onclick="event.stopPropagation()">${inner}</div>
+  </div>`;
+  setTimeout(() => {
+    const inp = root.querySelector('input:not([type="button"]):not([type="number"]), textarea');
+    if (inp) inp.focus();
+  }, 60);
+}
+
+// ── PICKER MODAL ─────────────────────────────
+function renderPickerModal() {
+  const { date, slot, itemIdx, quickAdd } = S.modal;
+  const meta = SLOT_META[slot];
+  const plan = S.plans.find(p => p.date === date);
+  const curEntry = (plan && plan[slot] && itemIdx != null) ? plan[slot][itemIdx] : null;
+
+  // Quick-add new meal form
+  if (quickAdd) return renderQuickAddForm();
+
+  // Move-to sub-view
+  if (S.modal.moveTo) return renderMoveToForm();
+
+  return `<div class="modal-head">
+    <div>
+      <div class="modal-title">${meta.icon} ${itemIdx != null ? 'Change ' + meta.label.replace(/s$/, '') : 'Add to ' + meta.label}</div>
+      <div class="modal-sub">${fmtFull(date)}</div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    ${curEntry ? (() => {
+      const curMeal = curEntry.mealId ? getMeal(curEntry.mealId) : null;
+      const isTemp = curMeal && curMeal.temporary;
+      return `<div class="picker-current">
+        <div class="picker-current-lbl">Current${isTemp ? ' · One-off' : ''}</div>
+        <div class="picker-current-name">${esc(getEntryName(curEntry))}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="openMoveTo()">Move to</button>
+          <button class="btn btn-sm btn-danger" onclick="doClearFromPicker()">✕ Remove</button>
+        </div>
+      </div>`;
+    })() : ''}
+    <input class="picker-search" type="text" id="picker-inp" placeholder="Search library…"
+      value="${esc(S.pickerSearch)}" oninput="doPickerSearch(this.value)">
+    <button class="btn btn-sm" style="width:100%;justify-content:center;margin-bottom:8px" onclick="openQuickAdd()">+ Quick add new meal</button>
+    <div id="picker-results">${renderPickerResults()}</div>
+  </div>`;
+}
+
+function renderQuickAddForm() {
+  const d = S.modal.quickAddData || {};
+  const meta = SLOT_META[S.modal.slot];
+  const v = (k) => esc(d[k] != null ? d[k] : '');
+  return `<div class="modal-head">
+    <div>
+      <div class="modal-title">${meta.icon} New meal</div>
+      <div class="modal-sub">${fmtFull(S.modal.date)}</div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-field">
+      <label class="form-label">Name *</label>
+      <input class="form-input" type="text" id="qa-name" value="${v('name')}" placeholder="e.g. Grilled Chicken">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Category *</label>
+      <div class="cat-pills">
+        ${CATS.map(c => `<button class="cat-pill ${d.category===c?'sel-'+c:''}" onclick="setQuickAddCat('${c}')">${cap(c)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Notes <span style="font-weight:400;text-transform:none">(optional)</span></label>
+      <textarea class="form-input" id="qa-notes" rows="2" placeholder="Optional">${v('notes')}</textarea>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--g700);cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="qa-savelib" ${d.saveToLib ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer">
+      Also save to library for future use
+    </label>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="cancelQuickAdd()">Back</button>
+    <button class="btn btn-primary" onclick="submitQuickAdd()">Add to ${meta.label}</button>
+  </div>`;
+}
+
+function renderPickerResults() {
+  const { slot } = S.modal;
+  const isSnack = slot === 'snacks';
+  const defCat = isSnack ? 'snack' : (slot === 'lunch' || slot === 'dinner') ? 'meal' : slot;
+  const q = S.pickerSearch.toLowerCase();
+
+  let recentMeals = S.recentIds.map(id => S.meals.find(m => m.id===id)).filter(m => m && !m.temporary);
+  if (q) recentMeals = recentMeals.filter(m => m.name.toLowerCase().includes(q));
+
+  let lib = S.meals.filter(m => !m.temporary && (!q || m.name.toLowerCase().includes(q)));
+  const recentSet = new Set(recentMeals.map(m => m.id));
+
+  let primary, other;
+  if (!q) {
+    primary = lib.filter(m => m.category === defCat && !recentSet.has(m.id));
+    other   = lib.filter(m => m.category !== defCat && !recentSet.has(m.id));
+  } else {
+    primary = lib.filter(m => !recentSet.has(m.id));
+    other = [];
+  }
+
+  let html = '';
+  if (recentMeals.length) {
+    html += `<div class="picker-sec-lbl">Recently Used</div>`;
+    html += recentMeals.map(m => pickerItem(m)).join('');
+    if (primary.length || other.length) html += `<div class="picker-divider"></div>`;
+  }
+  if (primary.length) {
+    html += `<div class="picker-sec-lbl">${!q ? cap(defCat)+' Meals' : 'Meals'}</div>`;
+    html += primary.map(m => pickerItem(m)).join('');
+  }
+  if (other.length) {
+    html += `<div class="picker-divider"></div><div class="picker-sec-lbl">Other Meals</div>`;
+    html += other.map(m => pickerItem(m)).join('');
+  }
+  if (!html) html = `<div style="text-align:center;padding:16px;font-size:13px;color:var(--g400)">No matches in your library</div>`;
+  return html;
+}
+
+function pickerItem(meal) {
+  return `<div class="picker-item" onclick="doSelectMeal('${meal.id}')">
+    <div class="cat-dot ${meal.category}" style="margin-top:0;flex-shrink:0"></div>
+    <span class="picker-item-name">${esc(meal.name)}</span>
+  </div>`;
+}
+
+// ── MEAL FORM MODAL ──────────────────────────
+function renderMealFormModal() {
+  const meal = S.modal.mealId ? getMeal(S.modal.mealId) : null;
+  const d = S.formData;
+  const name     = d.name      !== undefined ? d.name      : (meal ? meal.name : '');
+  const cat      = d.category  !== undefined ? d.category : (meal ? meal.category : '');
+  const notes    = d.notes     !== undefined ? d.notes     : (meal ? (meal.notes||'') : '');
+
+  return `<div class="modal-head">
+    <div class="modal-title">${meal ? 'Edit Meal' : 'New Meal'}</div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-field">
+      <label class="form-label">Meal Name *</label>
+      <input class="form-input" type="text" id="mf-name" value="${esc(name)}" placeholder="e.g. Grilled Chicken" oninput="S.formData.name=this.value">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Category *</label>
+      <div class="cat-pills">
+        ${CATS.map(c => `<button class="cat-pill ${cat===c?'sel-'+c:''}" onclick="selectFormCat('${c}')">${cap(c)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Notes <span style="font-weight:400;text-transform:none">(optional)</span></label>
+      <textarea class="form-input" id="mf-notes" placeholder="Tips, variations…" oninput="S.formData.notes=this.value">${esc(notes)}</textarea>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="doSaveMeal()">${meal ? 'Save Changes' : 'Add Meal'}</button>
+  </div>`;
+}
+
+// ── COPY DAY MODAL ───────────────────────────
+function renderCopyDayModal() {
+  const { fromDate } = S.modal;
+  const defTarget = addDays(fromDate, 1);
+  return `<div class="modal-head">
+    <div>
+      <div class="modal-title">Copy Day</div>
+      <div class="modal-sub">From ${fmtFull(fromDate)}</div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-field">
+      <label class="form-label">Copy to Date</label>
+      <input class="form-input" type="date" id="copy-target" value="${defTarget}">
+    </div>
+    <p style="font-size:12px;color:var(--g500)">All four meal sections will be copied. Existing meals on the target day will be replaced.</p>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="doExecCopyDay('${fromDate}')">Copy</button>
+  </div>`;
+}
+
+// ── DELETE CONFIRM MODAL ─────────────────────
+function renderDelMealModal() {
+  const meal = getMeal(S.modal.mealId);
+  return `<div class="modal-head">
+    <div class="modal-title">Delete Meal?</div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:14px;color:var(--g700)">Delete <strong>${esc(meal?meal.name:'')}</strong>? It will also be removed from any days it's planned.</p>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-danger" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="doDeleteMeal('${S.modal.mealId}')">Delete</button>
+  </div>`;
+}
+
+// ── POPOVER ───────────────────────────────────
+function renderPopover() {
+  const root = document.getElementById('popover-root');
+  if (!S.popover) { root.innerHTML = ''; return; }
+  const { date, slot, itemIdx, top, left } = S.popover;
+  const plan = S.plans.find(p => p.date === date);
+  const entry = (plan && plan[slot] && itemIdx != null) ? plan[slot][itemIdx] : null;
+  if (!entry) { root.innerHTML = ''; return; }
+  const name  = getEntryName(entry);
+  const notes = getEntryNotes(entry);
+  // label context
+  const isWeekly = S.view === 'weekly';
+  root.innerHTML = `<div class="popover" style="top:${top}px;left:${left}px">
+    <div class="popover-name">${esc(name)}</div>
+    ${notes ? `<div class="popover-notes">${esc(notes)}</div>` : ''}
+    <div class="popover-actions">
+      <button class="btn btn-sm" onclick="popChange()">Change</button>
+      <button class="btn btn-sm" onclick="popUseAgain()">Use Again${isWeekly?' +1wk':' →'}</button>
+      <button class="btn btn-sm btn-danger" onclick="popClear()">✕</button>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════
+function setView(v) {
+  S.view = v; S.modal = null; S.popover = null;
+  document.getElementById('modal-root').innerHTML = '';
+  document.getElementById('popover-root').innerHTML = '';
+  render();
+}
+
+function navPrev() {
+  S.popover = null;
+  if (S.view === 'weekly') S.weekStart = addDays(S.weekStart, -7);
+  else S.selectedDate = addDays(S.selectedDate, -1);
+  render();
+}
+
+function navNext() {
+  S.popover = null;
+  if (S.view === 'weekly') S.weekStart = addDays(S.weekStart, 7);
+  else S.selectedDate = addDays(S.selectedDate, 1);
+  render();
+}
+
+function goToday() {
+  const t = todayISO();
+  S.weekStart = getMondayISO(t);
+  S.selectedDate = t;
+  S.popover = null;
+  render();
+}
+
+function openPicker(date, slot, itemIdx) {
+  closePopover_();
+  S.pickerSearch = '';
+  S.modal = { type:'picker', date, slot, itemIdx: itemIdx !== 'null' ? itemIdx : null };
+  renderModal();
+}
+
+function closeModal() {
+  // If the meal form was opened from inside the picker, return to the picker
+  // instead of fully closing.
+  if (S.savedPicker) {
+    S.modal = S.savedPicker;
+    S.savedPicker = null;
+    S.formData = {};
+    renderModal();
+    return;
+  }
+  S.modal = null; S.formData = {};
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+function overlayClose(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
+
+function closePopover_() { S.popover = null; document.getElementById('popover-root').innerHTML = ''; }
+
+function showPopover(e, el, date, slot, itemIdx) {
+  e.stopPropagation();
+  const rect = el.getBoundingClientRect();
+  const top = rect.bottom + window.scrollY + 6;
+  const left = Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - 256));
+  S.popover = { date, slot, itemIdx: itemIdx !== null ? itemIdx : null, top, left };
+  renderPopover();
+}
+
+function popChange()    { const {date,slot,itemIdx}=S.popover; closePopover_(); openPicker(date, slot, itemIdx); }
+function popClear()     {
+  const {date,slot,itemIdx}=S.popover;
+  if (itemIdx != null) removeFromSlot(date, slot, itemIdx);
+  closePopover_(); render();
+}
+function popUseAgain()  {
+  const {date,slot,itemIdx}=S.popover;
+  const days = S.view==='weekly' ? 7 : 1;
+  useAgainNext(date, slot, itemIdx, days);
+  const nd = addDays(date,days);
+  closePopover_(); render();
+  showToast('Copied to ' + fmtShort(nd));
+}
+
+// Picker actions
+function doPickerSearch(val) {
+  S.pickerSearch = val;
+  const el = document.getElementById('picker-results');
+  if (el) el.innerHTML = renderPickerResults();
+}
+
+function doSelectMeal(mealId) {
+  doScheduleMeal(mealId);
+}
+
+function doScheduleMeal(mealId) {
+  const { date, slot, itemIdx } = S.modal;
+  const entry = { mealId };
+  if (itemIdx != null) replaceInSlot(date, slot, itemIdx, entry);
+  else addToSlot(date, slot, entry);
+  closeModal(); render();
+}
+
+// ── Move to ──
+function renderMoveToForm() {
+  const { date, slot, itemIdx } = S.modal;
+  const plan = S.plans.find(p => p.date === date);
+  const entry = (plan && plan[slot] && itemIdx != null) ? plan[slot][itemIdx] : null;
+  const name = getEntryName(entry);
+  const moveDate = S.modal.moveDate || addDays(date, 1);
+
+  // Build day buttons: current week centered around current day
+  const dayBtns = [];
+  for (let i = -3; i <= 7; i++) {
+    const d = addDays(date, i);
+    const isSel = d === moveDate;
+    dayBtns.push(`<button class="btn btn-sm ${isSel ? 'btn-primary' : ''}" style="min-width:0;flex:1;padding:6px 4px"
+      onclick="setMoveDate('${d}')">${fmtDayName(d).slice(0,3)}<br>${fmtDayNum(d)}</button>`);
+  }
+
+  const slotBtns = SLOTS.map(s => {
+    const meta = SLOT_META[s];
+    const isSel = (S.modal.moveSlot || slot) === s;
+    return `<button class="btn btn-sm ${isSel ? 'btn-primary' : ''}" onclick="setMoveSlot('${s}')">${meta.icon} ${meta.label}</button>`;
+  }).join('');
+
+  return `<div class="modal-head">
+    <div>
+      <div class="modal-title">Move to</div>
+      <div class="modal-sub">${esc(name)}</div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-field">
+      <label class="form-label">Day</label>
+      <div style="display:flex;gap:4px">${dayBtns.join('')}</div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Meal</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${slotBtns}</div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="cancelMoveTo()">Back</button>
+    <button class="btn btn-primary" onclick="execMoveTo()">Move</button>
+  </div>`;
+}
+
+function openMoveTo() {
+  S.modal.moveTo = true;
+  S.modal.moveDate = addDays(S.modal.date, 1);
+  S.modal.moveSlot = S.modal.slot;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function cancelMoveTo() {
+  S.modal.moveTo = false;
+  S.modal.moveDate = null;
+  S.modal.moveSlot = null;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function setMoveDate(d) {
+  S.modal.moveDate = d;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function setMoveSlot(s) {
+  S.modal.moveSlot = s;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function execMoveTo() {
+  const { date, slot, itemIdx, moveDate, moveSlot } = S.modal;
+  if (date === moveDate && slot === moveSlot) {
+    showToast('Already in that slot');
+    return;
+  }
+  const plan = S.plans.find(p => p.date === date);
+  const entry = (plan && plan[slot] && itemIdx != null) ? plan[slot][itemIdx] : null;
+  if (!entry) return;
+
+  // Add to target first, then remove from source
+  addToSlot(moveDate, moveSlot, { ...entry });
+  removeFromSlot(date, slot, itemIdx);
+
+  closeModal();
+  render();
+  showToast('Moved to ' + fmtShort(moveDate) + ' ' + SLOT_META[moveSlot].label);
+}
+
+// ── Quick add new meal from inside the picker ──
+function syncQuickAddDom() {
+  if (!S.modal.quickAddData) S.modal.quickAddData = {};
+  const d = S.modal.quickAddData;
+  ['name','notes'].forEach(f => {
+    const el = document.getElementById('qa-' + f);
+    if (el) d[f] = el.value;
+  });
+  const cb = document.getElementById('qa-savelib');
+  if (cb) d.saveToLib = cb.checked;
+}
+
+function openQuickAdd() {
+  S.modal.quickAdd = true;
+  S.modal.quickAddData = {};
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+  setTimeout(() => {
+    const inp = document.getElementById('qa-name');
+    if (inp) inp.focus();
+  }, 0);
+}
+
+function cancelQuickAdd() {
+  S.modal.quickAdd = false;
+  S.modal.quickAddData = null;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function setQuickAddCat(cat) {
+  syncQuickAddDom();
+  S.modal.quickAddData.category = cat;
+  document.querySelector('.modal').innerHTML = renderPickerModal();
+}
+
+function submitQuickAdd() {
+  syncQuickAddDom();
+  const d = S.modal.quickAddData || {};
+  const name = (d.name || '').trim();
+  if (!name) {
+    const inp = document.getElementById('qa-name');
+    if (inp) { inp.classList.add('err'); inp.focus(); }
+    return;
+  }
+  if (!d.category) {
+    showToast('Please select a category');
+    return;
+  }
+  const meal = addMeal({
+    name,
+    category:    d.category,
+    notes:       d.notes,
+    temporary:   !d.saveToLib,
+  });
+  S.modal.quickAdd = false;
+  S.modal.quickAddData = null;
+  showToast(d.saveToLib ? 'Added to library and scheduled.' : 'Scheduled (one-off).');
+  doScheduleMeal(meal.id);
+}
+
+function doClearFromPicker() {
+  const { date, slot, itemIdx } = S.modal;
+  if (itemIdx != null) removeFromSlot(date, slot, itemIdx);
+  closeModal(); render();
+}
+
+// Daily actions
+function doClearSlot(date, slot) { clearSlot(date,slot); render(); }
+function doUseAgain(date, slot, idx, days) {
+  const i = idx === 'null' ? null : idx;
+  useAgainNext(date, slot, i, days);
+  showToast('Copied to ' + fmtShort(addDays(date, days)));
+  render();
+}
+
+function doRemoveItem(date, slot, idx) {
+  removeFromSlot(date, slot, idx);
+  render();
+}
+
+// Library actions
+function doLibSearch(val) {
+  S.libSearch = val;
+  const el = document.getElementById('lib-list');
+  if (el) el.innerHTML = renderLibList();
+}
+
+function setLibCat(cat) { S.libCat = cat; render(); }
+
+// Meal form
+function openMealForm(mealId) {
+  S.formData = {};
+  S.modal = { type:'mealForm', mealId };
+  renderModal();
+}
+
+// Open the meal form from inside the picker — remembers the picker
+// state so closing/saving the form returns to the same picker context.
+function openMealFormFromPicker(mealId) {
+  S.savedPicker = { ...S.modal };
+  openMealForm(mealId);
+}
+
+function selectFormCat(cat) {
+  const nameEl  = document.getElementById('mf-name');
+  const notesEl = document.getElementById('mf-notes');
+  if (nameEl)  S.formData.name  = nameEl.value;
+  if (notesEl) S.formData.notes = notesEl.value;
+  S.formData.category = cat;
+  const m = document.querySelector('.modal');
+  if (m) m.innerHTML = renderMealFormModal();
+}
+
+function doSaveMeal() {
+  const nameEl     = document.getElementById('mf-name');
+  const notesEl    = document.getElementById('mf-notes');
+  const name     = (nameEl ? nameEl.value : S.formData.name || '').trim();
+  const cat      = S.formData.category !== undefined ? S.formData.category : (S.modal.mealId ? getMeal(S.modal.mealId)?.category : '');
+  const notes    = notesEl ? notesEl.value : (S.formData.notes || '');
+  if (!name) { if(nameEl){ nameEl.classList.add('err'); nameEl.focus(); } return; }
+  if (!cat) { showToast('Please select a category'); return; }
+  const payload = {name,category:cat,notes};
+  if (S.modal.mealId) { updateMeal(S.modal.mealId, payload); showToast('Meal updated'); }
+  else { addMeal(payload); showToast('Meal added to library'); }
+  // Re-render the underlying view first so chip badges/totals reflect the
+  // new data; closeModal() will then either close cleanly or restore the
+  // picker that was open before this form launched.
+  render();
+  closeModal();
+}
+
+function confirmDeleteMeal(mealId) { S.modal = {type:'delMeal', mealId}; renderModal(); }
+function doDeleteMeal(mealId) { deleteMeal(mealId); closeModal(); render(); showToast('Meal deleted'); }
+
+// Copy day
+function openCopyDay(fromDate) { S.modal = {type:'copyDay', fromDate}; renderModal(); }
+function doExecCopyDay(fromDate) {
+  const el = document.getElementById('copy-target');
+  if (!el || !el.value) return;
+  copyDay(fromDate, el.value);
+  closeModal(); render();
+  showToast('Day copied to ' + fmtShort(el.value));
+}
+
+// ── HELPERS ──────────────────────────────────
+function cap(s) {
+  if (Array.isArray(s)) s = s[0] || '';
+  if (!s) return '';
+  if (s === 'meal') return 'Lunch/Dinner';
+  if (s === 'placeholder') return 'Placeholder';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ═══════════════════════════════════════════
+//  GLOBAL EVENTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (S.modal) { closeModal(); return; }
+    if (S.popover) { closePopover_(); return; }
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!S.popover) return;
+  const pop = document.querySelector('.popover');
+  if (pop && !pop.contains(e.target)) closePopover_();
+});
+
+let resizeTmr;
+let lastIsMobile = window.innerWidth < 640;
+window.addEventListener('resize', () => {
+  const nowMobile = window.innerWidth < 640;
+  if (nowMobile === lastIsMobile) return;
+  lastIsMobile = nowMobile;
+  if (S.view === 'weekly') {
+    clearTimeout(resizeTmr);
+    resizeTmr = setTimeout(() => render(), 100);
+  }
+});
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+loadState();
+const t0 = todayISO();
+S.weekStart    = getMondayISO(t0);
+S.selectedDate = t0;
+render();
+</script>
+</body>
+</html>
